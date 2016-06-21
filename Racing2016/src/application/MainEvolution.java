@@ -220,7 +220,6 @@ public class MainEvolution extends Application{
 						if(map2.checkWin(car)){
 							win = true;
 							wc.clearRect(0, 0,maxDistX, maxDistY);
-							int score = car.getScore();
 							
 							Image winScreen = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/winScreen.png");
 							wc.drawImage(winScreen, 0, 0);
@@ -267,6 +266,14 @@ public class MainEvolution extends Application{
 									population[j].reset(j);
 									population[j].setRandomCode();
 								}
+								try{
+									FileWriter highScore = new FileWriter("highScores.txt",false);
+									highScore.write("");
+									highScore.flush();
+									highScore.close();
+								}catch(IOException e){
+									
+								}
 								win = false;
 							}
 							//restart round
@@ -280,19 +287,42 @@ public class MainEvolution extends Application{
 							//this is to save a current gene code:
 							if(cmds.contains("P")){
 								try {
-								    FileOutputStream fos = new FileOutputStream("saveFile.tmp");
-								    ObjectOutputStream oos = new ObjectOutputStream(fos);
-								   
+									FileOutputStream fos;
+									ObjectOutputStream oos;
+									FileWriter fWrite;
+									
+									//checking if saveFile already exists
+									if(new File("saveFile.tmp").isFile()){
+									    fos = new FileOutputStream("saveFile.tmp");
+									    oos = new ObjectOutputStream(fos);
+									}
+									else{
+									    fos = new FileOutputStream(new File("saveFile.tmp"));
+									    oos = new ObjectOutputStream(fos);
+									}	
+									
+									if(new File("geneCode.txt").isFile()){
+										fWrite = new FileWriter("geneCode.txt");
+									}
+									else{
+										fWrite = new FileWriter(new File("geneCode.txt"));
 
-									FileWriter fWrite = new FileWriter("geneCode.txt");
+									}
 									for(int j = 0; j < population.length; j++){
 										fWrite.write(population[j].getCodeString() + '\n');
 										oos.writeObject(population[j].getCode());
 									}
 									gc.fillText("Save successful.", 10, 70);
+									
+									fWrite.flush();
 									fWrite.close();
+									
+									oos.flush();
 									oos.close();
+									
+									fos.flush();
 									fos.close();
+									
 								} catch (IOException e) {
 									e.printStackTrace();
 									gc.fillText("Unable to save.", 10, 70);
@@ -312,11 +342,14 @@ public class MainEvolution extends Application{
 							car.render(cars);
 							int[] carCenter = car.getCenter();
 							gc.fillText("–––––––" + i + "," + car.getScore(), carCenter[0], carCenter[1]);
-							String comp = "DRIVING";
+							
+							/**this is for debugging:**/
+							
+						/*	String comp = "DRIVING";
 							if(car.getNextInstruction() == 0 && car.getCodeIndex() == 9){
 								comp = "STOPPED";
 							}
-					//		gc.fillText("Car "+ i + ": "+ car.toString() + ". "+comp,400,30+10*i);
+							gc.fillText("Car "+ i + ": "+ car.toString() + ". "+comp,400,30+10*i);*/
 						}
 						
 						
@@ -329,30 +362,41 @@ public class MainEvolution extends Application{
 					}
 					
 					if(numberCompleted == population.length){
-						//rank cars by highest score to lowest score
+						/**rank cars by highest score to lowest score**/
 						Arrays.sort(population);
-						System.out.println(population[0].getScore());
+						String s = Integer.toString(population[0].getScore());
 						for(int i = 0; i < population.length/2; i++){
-							//breed new cars based on genetic code of best cars 
+							/**breed new cars based on genetic code of best cars **/
 							population[population.length-i-1].setGeneCode(population[i].breed(population[i+1]));
 							population[i].addMutation();
 						}
 						for(int j = 0; j < population.length; j++){
 							population[j].reset(j);
 						}
+						/**saves current progress:**/
 						try {
 						    FileOutputStream fos = new FileOutputStream("saveFile.tmp");
 						    ObjectOutputStream oos = new ObjectOutputStream(fos);
 						   
-
-							FileWriter fWrite = new FileWriter("geneCode.txt");
+							FileWriter currentGenes = new FileWriter("geneCode.txt");
+							FileWriter highScore = new FileWriter("highScores.txt",true);
+							highScore.write(s + '\t');
 							for(int j = 0; j < population.length; j++){
-								fWrite.write(population[j].getCodeString() + '\n');
+								currentGenes.write(population[j].getCodeString() + '\n');
 								oos.writeObject(population[j].getCode());
 							}
 							gc.fillText("Save successful.", 10, 70);
-							fWrite.close();
+							
+							highScore.flush();
+							highScore.close();
+							
+							currentGenes.flush();
+							currentGenes.close();
+							
+							oos.flush();
 							oos.close();
+							
+							fos.flush();
 							fos.close();
 						} catch (IOException e) {
 							e.printStackTrace();

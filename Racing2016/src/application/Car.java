@@ -44,6 +44,7 @@ public class Car implements Comparable<Car>{
     
     private Codon[] geneCode;
     private int currentCodeIndex = 0;
+    private double mutationChance = 0.10;
     
 
     public Car(Map curMap)
@@ -76,6 +77,8 @@ public class Car implements Comparable<Car>{
         velocityY = 0;
     }
     
+    //METHODS BELOW HAVE TO DO WITH GENETIC CODE AND EVOLUTION:
+    
     public void setRandomCode(){
     	this.geneCode = new Codon[10];
     	for(int i = 0; i < 10; i++){
@@ -89,7 +92,7 @@ public class Car implements Comparable<Car>{
     	for(int i = 0; i < 10; i++){
     		//1 means forward, 2, means backward, 3 means left, 4 means right.
     		double mutationFactor = Math.random();
-    		if(mutationFactor > 0.985){
+    		if(mutationFactor > (1-mutationChance)){
         		int randomInstruction = ((int) (Math.random() * 4))+1;
         		double randomTime = (double) ((Math.round(Math.random() * 30.0)/10.0));
         		this.geneCode[i] = new Codon(randomInstruction,randomTime);
@@ -97,6 +100,25 @@ public class Car implements Comparable<Car>{
     	}
 
     }
+    public Codon[] breed(Car other){
+    	Codon[] offspring = new Codon[this.geneCode.length];
+    	for(int i = 0; i < this.geneCode.length; i++){
+    		double random = Math.random();
+    		if(random < ((1-mutationChance)/2)){
+    			offspring[i] = this.geneCode[i];
+    		}
+    		else if(random < (1-mutationChance)){
+    			offspring[i] = other.geneCode[i];
+    		}
+    		else{
+    			double randomTime = (double) ((Math.round(Math.random() * 30.0)/10.0));
+
+    			offspring[i] = new Codon(((int) (Math.random() * 4))+1,randomTime);
+    		}
+    	}
+    	return offspring;
+    }
+
     
     public void setGeneCode(Codon[] geneCode){
     	this.geneCode = geneCode;
@@ -332,22 +354,6 @@ public class Car implements Comparable<Car>{
         return s.getBoundary().intersects( this.getBoundary() );
     }
     
-    public Codon[] breed(Car other){
-    	Codon[] offspring = new Codon[this.geneCode.length];
-    	for(int i = 0; i < this.geneCode.length; i++){
-    		double random = Math.random() * 2.5;
-    		if(random < 1){
-    			offspring[i] = this.geneCode[i];
-    		}
-    		else if(random < 2){
-    			offspring[i] = other.geneCode[i];
-    		}
-    		else{
-    			offspring[i] = new Codon((int) (Math.random() * 3 + 1),(int) (Math.random() * 3));
-    		}
-    	}
-    	return offspring;
-    }
     @Override
     public int compareTo(Car other){
     	if(this.getScore() > other.getScore()){
