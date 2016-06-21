@@ -1,4 +1,12 @@
 package application;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -28,13 +36,15 @@ public class MainEvolution extends Application{
 			Scene scene = new Scene(root);
 			
 			stage.setScene(scene);
+
 		
 			//creates the map
 			int trackNum = 1;
 			Map map = new Map();
 			if(trackNum == 1){
 				//this is a parking map (track type 1)
-				Image background = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/tracks/race_track_2.png");
+				//file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/
+				Image background = new Image("file:Images/tracks/race_track_2.png");
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {1100, 160};
 				int[][] endBox = {{165,737},{209,815}};
@@ -43,7 +53,7 @@ public class MainEvolution extends Application{
 			}
 			if(trackNum == 2){
 				//this is a racing map (track type 2)
-				Image background = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/tracks/race_track_3.png");
+				Image background = new Image("file:Images/tracks/race_track_3.png");
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {440, 125};
 				int[][] endBox = {{415,95},{415,232}};
@@ -58,27 +68,91 @@ public class MainEvolution extends Application{
 			
 			
 			//CREATES THE VEHICLES:
-			Car[] population = new Car[40];
-			//
-			Image blueCarImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/blueCar.png");
-			//Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
+			Car[] population = new Car[48];
 			
-			Image redCarImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/redCar.png");
+			//Creates the images:
+			//file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016
+			Image blueCarImg = new Image("file:Images/Cars/blueCar.png");
+			Image redCarImg = new Image("file:Images/Cars/redCar.png");
+			Image purpCarImg = new Image("file:Images/Cars/purpCar.png");
+			Image yelCarImg = new Image("file:Images/Cars/yelCar.png");
 
-			for(int i = 0; i < population.length; i++){
-				Car car = new Car(map,2,2,1,200,-100);
-				car.setPosition(map.getStartCoord()[0], map.getStartCoord()[1]);
-				if(i%2 == 0){
-					car.setImage(blueCarImg);
+			stage.getIcons().add(blueCarImg);
+
+			//method that reads the gene codes.
+			boolean continueProgress = true;
+			if(continueProgress){
+				try{
+				    FileInputStream fis = new FileInputStream("saveFile.tmp");
+					ObjectInputStream codeReader = new ObjectInputStream(fis);
+					for(int i = 0; i < population.length; i++){
+						//Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
+						Car car = new Car(map,2,2,1,200,-100);
+						car.setPosition(map.getStartCoord()[0], map.getStartCoord()[1]);
+						if(i%4 == 0){
+							car.setImage(blueCarImg);
+						}
+						else if(i%3 == 0){
+							car.setImage(redCarImg);
+						}
+						else if(i%2 == 0){
+							car.setImage(purpCarImg);
+						}
+						else{
+							car.setImage(yelCarImg);
+						}
+						Codon[] curCode = (Codon[]) codeReader.readObject();
+						car.setGeneCode(curCode);
+						population[i] = car;
+					}
+					codeReader.close();
+					fis.close();
+					System.out.println("gene pool loaded successfully.");
+
+
+				}catch(IOException e){
+					for(int i = 0; i < population.length; i++){
+						Car car = new Car(map,2,2,1,200,-100);
+						car.setPosition(map.getStartCoord()[0], map.getStartCoord()[1]);
+						if(i%4 == 0){
+							car.setImage(blueCarImg);
+						}
+						else if(i%3 == 0){
+							car.setImage(redCarImg);
+						}
+						else if(i%2 == 0){
+							car.setImage(purpCarImg);
+						}
+						else{
+							car.setImage(yelCarImg);
+						}
+						car.setRandomCode();
+						population[i] = car;
+					}
+					System.out.println("gene pool failed to load.");
 				}
-				else{
-					car.setImage(redCarImg);
-
-				}
-				car.setRandomCode();
-				population[i] = car;
-
 			}
+			else{
+				for(int i = 0; i < population.length; i++){
+					Car car = new Car(map,2,2,1,200,-100);
+					car.setPosition(map.getStartCoord()[0], map.getStartCoord()[1]);
+					if(i%4 == 0){
+						car.setImage(blueCarImg);
+					}
+					else if(i%3 == 0){
+						car.setImage(redCarImg);
+					}
+					else if(i%2 == 0){
+						car.setImage(purpCarImg);
+					}
+					else{
+						car.setImage(yelCarImg);
+					}
+					car.setRandomCode();
+					population[i] = car;
+				}
+			}
+			
 			
 			
 			root.getChildren().add(gameCanvas);
@@ -150,13 +224,20 @@ public class MainEvolution extends Application{
 							
 							Image winScreen = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/winScreen.png");
 							wc.drawImage(winScreen, 0, 0);
-							Font font = Font.font(30);
+							Font font = Font.font(20);
 							wc.setFont(font);
 							wc.fillText("Press R to restart.", 500, 30);
-							wc.fillText("SCORE: " + score + ". Player "+(i+1)+" won.", 700, 500);
-							if(cmds.contains("R")){
+							wc.fillText("Genetic Code successful! Press O to replay. Press I to restart from scratch", 700, 500);
+							if(cmds.contains("O")){
 								for(int j = 0; j < population.length; j++){
 									population[j].reset(j);
+								}
+								win = false;
+							}
+							if(cmds.contains("I")){
+								for(int j = 0; j < population.length; j++){
+									population[j].reset(j);
+									population[j].setRandomCode();
 								}
 								win = false;
 							}
@@ -180,15 +261,46 @@ public class MainEvolution extends Application{
 							if(instruct == 4){
 								car.turnRight();
 							}
-							if(cmds.contains("R")){
+							//reset simulation
+							if(cmds.contains("I")){
+								for(int j = 0; j < population.length; j++){
+									population[j].reset(j);
+									population[j].setRandomCode();
+								}
+								win = false;
+							}
+							//restart round
+							if(cmds.contains("O")){
 								for(int j = 0; j < population.length; j++){
 									population[j].reset(j);
 								}
 								win = false;
+
+							}
+							//this is to save a current gene code:
+							if(cmds.contains("P")){
+								try {
+								    FileOutputStream fos = new FileOutputStream("saveFile.tmp");
+								    ObjectOutputStream oos = new ObjectOutputStream(fos);
+								   
+
+									FileWriter fWrite = new FileWriter("geneCode.txt");
+									for(int j = 0; j < population.length; j++){
+										fWrite.write(population[j].getCodeString() + '\n');
+										oos.writeObject(population[j].getCode());
+									}
+									gc.fillText("Save successful.", 10, 70);
+									fWrite.close();
+									oos.close();
+									fos.close();
+								} catch (IOException e) {
+									e.printStackTrace();
+									gc.fillText("Unable to save.", 10, 70);
+								}
 							}
 						}
 					}	
-					gc.fillText("Number of cars completed: " + numberCompleted, 400, 10*population.length+30);
+					gc.fillText("Number of cars completed: " + numberCompleted, 10, 10);
 
 					if(!win){
 						wc.clearRect(0, 0, maxDistX, maxDistY);
@@ -199,18 +311,21 @@ public class MainEvolution extends Application{
 							car.update(elapsedTime);
 							car.render(cars);
 							int[] carCenter = car.getCenter();
-							gc.fillText("–––––––" + i, carCenter[0], carCenter[1]);
+							gc.fillText("–––––––" + i + "," + car.getScore(), carCenter[0], carCenter[1]);
 							String comp = "DRIVING";
 							if(car.getNextInstruction() == 0 && car.getCodeIndex() == 9){
 								comp = "STOPPED";
 							}
-							gc.fillText("Car "+ i + ": "+ car.toString() + ". "+comp,400,30+10*i);
+					//		gc.fillText("Car "+ i + ": "+ car.toString() + ". "+comp,400,30+10*i);
 						}
 						
 						
 						Font font = Font.font(12);
 						gc.setFont(font);
-						gc.fillText("Press R to restart.", 10, 30);
+						gc.fillText("Press I to reset progress.", 10, 30);
+						gc.fillText("Press O to restart generation", 10, 40);
+						gc.fillText("Press P to save progress.", 10, 50);
+						
 					}
 					
 					if(numberCompleted == population.length){
@@ -218,15 +333,32 @@ public class MainEvolution extends Application{
 						Arrays.sort(population);
 						System.out.println(population[0].getScore());
 						for(int i = 0; i < population.length/2; i++){
+							//breed new cars based on genetic code of best cars 
 							population[population.length-i-1].setGeneCode(population[i].breed(population[i+1]));
 							population[i].addMutation();
 						}
 						for(int j = 0; j < population.length; j++){
 							population[j].reset(j);
 						}
-						win = false;
+						try {
+						    FileOutputStream fos = new FileOutputStream("saveFile.tmp");
+						    ObjectOutputStream oos = new ObjectOutputStream(fos);
+						   
 
-						
+							FileWriter fWrite = new FileWriter("geneCode.txt");
+							for(int j = 0; j < population.length; j++){
+								fWrite.write(population[j].getCodeString() + '\n');
+								oos.writeObject(population[j].getCode());
+							}
+							gc.fillText("Save successful.", 10, 70);
+							fWrite.close();
+							oos.close();
+							fos.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+							gc.fillText("Unable to save.", 10, 70);
+						}
+						win = false;
 					}
 				}
 				
@@ -276,6 +408,7 @@ public class MainEvolution extends Application{
 		launch(args);
 	}
 	
+	//a little easter egg:
 	public static void keka(){
 		int bunny = 500000;
 		bunny = bunny * 2;
@@ -283,32 +416,6 @@ public class MainEvolution extends Application{
 	}
 	
 }
-
-
-	/*
-
-	for(int i = 0; i < population.length; i++){
-		Random randomNum = new Random();
-		double accelFact = Math.abs(randomNum.nextGaussian() + 4);
-		double brakeFact = Math.abs(randomNum.nextGaussian() + 4);
-		double turnRadius = Math.abs(randomNum.nextGaussian() + 1);
-		double maxSpeed = Math.abs(randomNum.nextGaussian()*10 + 100);
-		double maxRevSp = -1 * maxSpeed / 2;
-		
-		Car car = new Car(race_track_2, accelFact, brakeFact, turnRadius, maxSpeed, maxRevSp);
-		car.setImage(blueCarImg);
-		population[i] = car;
-	}
-	*/
-	//creates a car:
-	//Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
-
-
-	/*Car raceCar = new Car(race_track_2, 2, 2, 1, 100,-50);
-	Image rcImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/blueCar.png");
-	raceCar.setImage(rcImg);
-	raceCar.reset();
-	*/
 
 
 

@@ -1,6 +1,12 @@
 package application;
 
-public class Codon {
+import java.io.Serializable;
+
+public class Codon implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6819567294083854400L;
 	private int instruction;
 	private double time;
 
@@ -24,4 +30,7 @@ public class Codon {
 	public void setTime(double time) {
 		this.time = time;
 	}	
+	public String toString(){
+		return "{"+this.instruction + ", "+this.time + "}";
+	}
 }

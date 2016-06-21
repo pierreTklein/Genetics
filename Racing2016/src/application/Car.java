@@ -105,6 +105,14 @@ public class Car implements Comparable<Car>{
     public Codon[] getCode(){
     	return this.geneCode;
     }
+    public String getCodeString(){
+    	String s = "[";
+    	for(int i = 0; i < this.geneCode.length; i++){
+    		s += this.geneCode[i].toString();
+    	}
+    	s+= "]";
+    	return s;
+    }
     
     public int getNextInstruction(){
     	double counter = 0;
@@ -317,7 +325,7 @@ public class Car implements Comparable<Car>{
 
     public boolean intersects(Car s)
     {
-    	//TODO: COMPLETE THE INTERSECTION CODE
+    	//TODO: COMPLETE THE INTERSECTION CODE, (or don't)
     	
     	
     	
