@@ -7,8 +7,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Random;
 
 import javafx.animation.AnimationTimer;
@@ -48,8 +51,8 @@ public class MainEvolution extends Application{
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {1100, 160};
 				int[][] endBox = {{165,737},{209,815}};
-				//changed friction from 0.9 to 3
-				map = new Map(background,dimensions,startCoord,endBox, "0x606060ff",0.5,"0x398830ff",4,1,false);
+				//changed friction from 0.9 to 5
+				map = new Map(background,dimensions,startCoord,endBox, "0x606060ff",0.5,"0x398830ff",5,1,false);
 			}
 			if(trackNum == 2){
 				//this is a racing map (track type 2)
@@ -57,7 +60,7 @@ public class MainEvolution extends Application{
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {440, 125};
 				int[][] endBox = {{415,95},{415,232}};
-				map = new Map(background,dimensions,startCoord,endBox, "0x606060ff",0.5,"0x398830ff",4,2,false);
+				map = new Map(background,dimensions,startCoord,endBox, "0x606060ff",0.5,"0x398830ff",0.9,2,false);
 			}
 			
 			final int maxDistX = map.getDimensions()[0];
@@ -245,7 +248,7 @@ public class MainEvolution extends Application{
 						if(!win){
 							gc.drawImage(map2.getMap(), 0, 0);
 							int instruct = car.getNextInstruction();
-							if(instruct == 0 && car.getCodeIndex() == 9){
+							if(instruct == 0 && car.getCodeIndex()==car.getCode().length-1 && car.getOverallSpeed() == 0){
 								numberCompleted++;
 							}
 							if(instruct == 1){
@@ -269,7 +272,6 @@ public class MainEvolution extends Application{
 								try{
 									FileWriter highScore = new FileWriter("highScores.txt",false);
 									highScore.write("");
-									highScore.flush();
 									highScore.close();
 								}catch(IOException e){
 									
@@ -336,8 +338,7 @@ public class MainEvolution extends Application{
 						wc.clearRect(0, 0, maxDistX, maxDistY);
 						for(int i = 0; i < population.length; i++){
 							Car car = population[i];
-							boolean grassPenalty = grassPenalty(car);
-							car.setGrassPenalty(grassPenalty);
+							car.setGrassPenalty(elapsedTime);
 							car.update(elapsedTime);
 							car.render(cars);
 							int[] carCenter = car.getCenter();
@@ -386,7 +387,6 @@ public class MainEvolution extends Application{
 								oos.writeObject(population[j].getCode());
 							}
 							gc.fillText("Save successful.", 10, 70);
-							
 							highScore.flush();
 							highScore.close();
 							
@@ -406,33 +406,6 @@ public class MainEvolution extends Application{
 					}
 				}
 				
-				public boolean grassPenalty(Car car){
-					PixelReader pr = map2.getMap().getPixelReader();
-					Bounds b = car.getBoundary();
-					Color[] corners = new Color[4];
-					try{
-						corners[0] = pr.getColor((int) b.getMinX(), (int) b.getMinY());
-						corners[1] = pr.getColor((int) (b.getMinX() + b.getWidth()), (int) car.getBoundary().getMinY());
-						corners[2] = pr.getColor((int) (b.getMaxX() - b.getWidth()), (int) car.getBoundary().getMaxY());
-						corners[3] = pr.getColor((int) b.getMaxX(), (int) b.getMaxY());
-						int counter = 0;
-						for(int i = 0; i < corners.length; i++){
-							if(corners[i].toString().equals(map2.getGrassColor())){
-								counter++;
-							}
-						}
-						if(counter >=2){
-							return true;
-						}
-						else{
-							return false;
-						}
-					}
-					catch(Exception e){
-						return true;
-					}
-					
-				}
 			
 			}.start();
 			stage.setTitle("Racers");

@@ -66,7 +66,6 @@ public class Main extends Application {
 			
 			Image redCarImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/redCar.png");
 			Car redCar = new Car(map,2,2,1,200,-100);
-			redCar.setPosition(defaultCar.getMinX()+20, defaultCar.getMinY());
 			redCar.setImage(redCarImg);
 			
 			
@@ -202,13 +201,11 @@ public class Main extends Application {
 						
 						for(int i = 0; i < population.length; i++){
 							Car car = population[i];
-							boolean grassPenalty = grassPenalty(car);
-							car.setGrassPenalty(grassPenalty);
 							car.update(elapsedTime);
+							car.setGrassPenalty(elapsedTime);
 							car.render(cars);
-							Point2D[] p = car.getRect();
+							Point[] p = car.getRect();
 							
-							//gc.fillRect(car.getMinX(), car.getMinY(), car.getBoundary().getWidth(), car.getBoundary().getHeight());
 
 							gc.fillRect(p[0].getX()-3, p[0].getY()-3, 5, 5);
 							gc.fillRect(p[1].getX()-3, p[1].getY()-3, 5, 5);
@@ -222,38 +219,10 @@ public class Main extends Application {
 						Font font = Font.font(12);
 						gc.setFont(font);
 						gc.fillText("Press R to restart.", 10, 30);
+						gc.fillText(raceCar.toString(), 10, 50);
 					}
 				}
-				
-				public boolean grassPenalty(Car car){
-					PixelReader pr = map2.getMap().getPixelReader();
-					Bounds b = car.getBoundary();
-					Color[] corners = new Color[4];
-					try{
-						corners[0] = pr.getColor((int) b.getMinX(), (int) b.getMinY());
-						corners[1] = pr.getColor((int) (b.getMinX() + b.getWidth()), (int) car.getBoundary().getMinY());
-						corners[2] = pr.getColor((int) (b.getMaxX() - b.getWidth()), (int) car.getBoundary().getMaxY());
-						corners[3] = pr.getColor((int) b.getMaxX(), (int) b.getMaxY());
-						gc.fillText(corners[0].toString() + " " + corners[1].toString() + '\n'+ corners[2].toString() + " " + corners[3].toString(), 10, 100);
-						int counter = 0;
-						for(int i = 0; i < corners.length; i++){
-							if(corners[i].toString().equals(map2.getGrassColor())){
-								counter++;
-							}
-						}
-						if(counter >=2){
-							return true;
-						}
-						else{
-							return false;
-						}
-					}
-					catch(Exception e){
-						return true;
-					}
-					
-				}
-			
+							
 			}.start();
 			stage.setTitle("Racers");
 			stage.show();

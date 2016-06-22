@@ -2,10 +2,11 @@ package application;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
+import javafx.scene.paint.Color;
 import javafx.scene.Group;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.geometry.Bounds;
-import javafx.geometry.Point2D;
 
 
 /**
@@ -14,7 +15,6 @@ import javafx.geometry.Point2D;
  **/
 public class Car implements Comparable<Car>{
     private ImageView imv;
-    private Image image;    
     private Map curMap;
     
     private double positionX;
@@ -28,16 +28,20 @@ public class Car implements Comparable<Car>{
     private double maxRevSp = -100;
     private double frict;
     private double overallSpeed = 0;
-    private int score = 100000; 
+    
+    private int maxScore = 100000;
+    private int score = 0; 
+    
     private double timeElapsed = 0;
-    private boolean grassPenalty;
     private double totalDist = 0;
+    private boolean grassPenalty = false;
+    private double timeOnGrass = 0;
     
-    
-    private Point2D pUL;
-    private Point2D pUR;
-    private Point2D pLL;
-    private Point2D pLR;
+    private Point pUL = new Point(0,0);
+    private Point pUR = new Point(0,0);
+    private Point pLL = new Point(0,0);
+    private Point pLR = new Point(0,0);
+    private Point[] minBounds= {this.pUL,this.pUR,this.pLL,this.pLR};
         
     private boolean previousWinState;
     private int lapNum;
@@ -55,7 +59,6 @@ public class Car implements Comparable<Car>{
     	this.turnRadius = 1;
     	this.maxSpeed = 200;
     	this.maxRevSp = -100;
-        this.grassPenalty = false;
         positionX = 0;
         positionY = 0;    
         velocityX = 0;
@@ -69,7 +72,6 @@ public class Car implements Comparable<Car>{
     	this.turnRadius = turnRadius;
     	this.maxSpeed = maxSpeed;
     	this.maxRevSp = maxRevSp;
-        this.grassPenalty = false;
         
         positionX = 0;
         positionY = 0;    
@@ -162,7 +164,6 @@ public class Car implements Comparable<Car>{
     
     public void setImage(Image i)
     {
-    	this.image = i;
         imv = new ImageView();
         imv.setImage(i);
     }
@@ -175,9 +176,11 @@ public class Car implements Comparable<Car>{
 		
 		this.timeElapsed = 0;
 		this.totalDist = 0;
-		this.score = 100000;
+		this.score = 0;
 		this.lapNum = 0;
 		this.currentCodeIndex = 0;
+		this.grassPenalty = false;
+		this.timeOnGrass = 0.5;
 
     }
 
@@ -267,47 +270,49 @@ public class Car implements Comparable<Car>{
     		overallSpeed = 0;
     	}
     	
-    	
-    	
     	velocityX = Math.cos(Math.toRadians(rotation)) * overallSpeed;
     	velocityY = Math.sin(Math.toRadians(rotation)) * overallSpeed;
         positionX += velocityX * time;
         positionY += velocityY * time;
         totalDist += Math.abs(overallSpeed) * time;
         timeElapsed+=time;
-        
+
+        this.setRect();
         this.stayInMap(curMap.getDimensions()[0],curMap.getDimensions()[1]);
+        this.setScore();
         
+    }
+    public void setRect(){
         //this part updates the minimum bounds:
+        Double rotation = imv.getRotate();
         Bounds b = imv.getBoundsInLocal();
         int[] center = this.getCenter();
         
 		double ulx = (b.getMinX()-center[0]) * Math.cos(Math.toRadians(rotation)) - (b.getMinY()-center[1]) * Math.sin(Math.toRadians(rotation))+center[0];
         double uly = (b.getMinY()-center[1]) * Math.cos(Math.toRadians(rotation)) + (b.getMinX()-center[0]) * Math.sin(Math.toRadians(rotation))+center[1];
 
-        this.pUL = new Point2D(ulx,uly);
+        this.pUL.update(ulx,uly);
         
         double urx = (b.getMaxX()-center[0]) * Math.cos(Math.toRadians(rotation)) - (b.getMinY()-center[1]) * Math.sin(Math.toRadians(rotation))+center[0];
         double ury = (b.getMinY()-center[1]) * Math.cos(Math.toRadians(rotation)) + (b.getMaxX()-center[0]) * Math.sin(Math.toRadians(rotation))+center[1];
 
-		this.pUR = new Point2D(urx,ury);
+		this.pUR.update(urx,ury);
+
 
         double llx = (b.getMinX()-center[0]) * Math.cos(Math.toRadians(rotation)) - (b.getMaxY()-center[1]) * Math.sin(Math.toRadians(rotation))+center[0];
         double lly = (b.getMaxY()-center[1]) * Math.cos(Math.toRadians(rotation)) + (b.getMinX()-center[0]) * Math.sin(Math.toRadians(rotation))+center[1];
 
-		this.pLL = new Point2D(llx,lly);
+		this.pLL.update(llx,lly);
 
         double lrx =(b.getMaxX()-center[0]) * Math.cos(Math.toRadians(rotation)) - (b.getMaxY()-center[1]) * Math.sin(Math.toRadians(rotation))+center[0];
         double lry = (b.getMaxY()-center[1]) * Math.cos(Math.toRadians(rotation)) + (b.getMaxX()-center[0]) * Math.sin(Math.toRadians(rotation))+center[1];
 	
-		this.pLR = new Point2D(lrx,lry);
+		this.pLR.update(lrx,lry);
 
-        this.setScore();
-        
-    }
-    public Point2D[] getRect(){
-    	Point2D[] points = {pUL,pUR,pLL,pLR};
-    	return points;
+	}
+    
+    public Point[] getRect(){
+    	return minBounds;
     }
     
     public int distanceFromFinish(){
@@ -371,6 +376,52 @@ public class Car implements Comparable<Car>{
     
     public void stayInMap(int xMax, int yMax){
     	
+    	Point[] minBound = this.getRect();
+    	double maxX = 0;
+    	double maxY = 0;
+    	double minX = minBound[0].getX();
+    	double minY = minBound[0].getY();
+    	for(int i = 0; i < minBound.length; i++){
+    		if(minBound[i].getX() > maxX){
+    			maxX = minBound[i].getX();
+    		}
+    		if(minBound[i].getY() > maxY){
+    			maxY = minBound[i].getY();
+    		}
+    		if(minBound[i].getX() < minX){
+    			minX = minBound[i].getX();
+    		}
+    		if(minBound[i].getY() < minY){
+    			minY = minBound[i].getY();
+    		}
+    	}
+    	if(maxX> (xMax-5) && velocityX > 0){
+    		if(imv.getRotate() > 0){
+        		imv.setRotate(360-(imv.getRotate()-180));
+    		}
+    		else{
+    			imv.setRotate(180+imv.getRotate());
+    		}
+    	}
+    	else if(maxY > (yMax-5) && velocityY > 0){
+        	imv.setRotate(360-imv.getRotate());
+
+    	}
+    	if(minX < 5 && velocityX < 0){
+    		if(imv.getRotate() < 180){
+        		imv.setRotate(180-imv.getRotate());
+    		}
+    		else{
+    			imv.setRotate(360-(imv.getRotate()-180));
+    		}
+    		
+    	}
+    	else if(minY < 5 && velocityY < 0){
+
+    		imv.setRotate((360-imv.getRotate())%360);
+
+    	}
+/*
     	Bounds box = this.getBoundary();
     	if(box.getMaxX() > (xMax-5) && velocityX > 0){
     		if(imv.getRotate() > 0){
@@ -397,21 +448,56 @@ public class Car implements Comparable<Car>{
 
     		imv.setRotate((360-imv.getRotate())%360);
 
-    	}
+    	}*/
     }
     public String getVelocity(){
     	return Double.toString(velocityX) + " " + Double.toString(velocityY);
     }
+	public boolean grassPenalty(){
+		PixelReader pr = curMap.getMap().getPixelReader();
+		Bounds b = this.getBoundary();
+		
+    	Point[] minBound = this.getRect();
+
+		
+		Color[] corners = new Color[4];
+		try{
+			corners[0] = pr.getColor((int) minBound[0].getX(), (int) minBound[0].getY());
+			corners[1] = pr.getColor((int) minBound[1].getX(), (int) minBound[1].getY());
+			corners[2] = pr.getColor((int) minBound[2].getX(), (int) minBound[2].getY());
+			corners[3] = pr.getColor((int) minBound[3].getX(), (int) minBound[3].getY());
+			int counter = 0;
+			for(int i = 0; i < corners.length; i++){
+				if(corners[i].toString().equals(curMap.getGrassColor())){
+					counter++;
+				}
+			}
+			if(counter >= 3){
+				return true;
+			}
+			else{
+				return false;
+			}
+		}
+		catch(Exception e){
+			return true;
+		}
+		
+	}
+
     
-    public void setGrassPenalty(boolean penalty){
-    	if(penalty){
+    
+    public void setGrassPenalty(double time){
+    	if(this.grassPenalty()){
     		frict = curMap.getGrassFrict();
+    		this.grassPenalty = true;
+    		this.timeOnGrass += time;
     	}
     	else{
     		frict = curMap.getAsphaltFrict();
+    		this.grassPenalty = false;
     		
     	}
-    	this.grassPenalty = penalty;
     }
     public int[] getCenter(){
     	int[] coordinates = new int[2];
@@ -422,25 +508,23 @@ public class Car implements Comparable<Car>{
     	
     }
     public void setScore(){
-    	int score = 100000;
+    	
     	try{
-        	this.score = (int)(score / this.distanceFromFinish());// - timeElapsed*10);
-        	if(this.score > score){
-        		this.score =  100000;
-        	}
-        	if(this.score < 0){
-        		this.score = 0;
-        	}
+    		if(!(this.currentCodeIndex==this.geneCode.length-1 && this.overallSpeed == 0)){
+            	this.score = (int) ((this.maxScore / (this.distanceFromFinish()))-this.timeOnGrass);// - timeElapsed*10);
+            	if(this.score > this.maxScore){
+            		this.score =  100000;
+            	}
+            	if(this.score < 0){
+            		this.score = 0;
+            	}
+    		}
     	}catch(Exception e){
     		this.score = (int)(100000);// - timeElapsed*10);
         	if(this.score < 0){
         		this.score = 0;
         	}
     	}
-    	/*
-    	int score = 100000;
-    	score /= (timeElapsed/100 + totalDist/100);
-    	this.score = score;*/
     }
     public int getScore(){
     	return this.score;
@@ -448,65 +532,19 @@ public class Car implements Comparable<Car>{
     public double getOverallSpeed(){
     	return this.overallSpeed;
     }
-    public double getMinX(){
-    	Bounds b = this.getBoundary();
-    	return b.getMinX();
-    }
-    public double getMaxX(){
-    	Bounds b = this.getBoundary();
-    	return b.getMaxX();
-    }
-    public double getMinY(){
-    	Bounds b = this.getBoundary();
-    	return b.getMinY();
-    }
-    public double getMaxY(){
-    	Bounds b = this.getBoundary();
-    	return b.getMaxY();
-    }
     
     public String toString()
     {
-    	String code = "[";
-    	for(int i = 0; i < geneCode.length; i++){
-    		code+= "{"+geneCode[i].getInstruction() + ", "+geneCode[i].getTime() + "}";
+    	String toString ="";
+    	
+    	if(geneCode != null){
+        	toString += "[";
+        	for(int i = 0; i < geneCode.length; i++){
+        		toString += "{"+geneCode[i].getInstruction() + ", "+geneCode[i].getTime() + "}";
+        	}
+        	toString +="]";	
     	}
-    	code+="]";
-    	
-    	
-    	String toString = ""+this.getScore() + ", " + code;
-    	
-    	
-    	/*
-    	int[] center = getCenter();    	
-
-    	String toString = "max acceleration: " + accelFact 
-    	 + '\n'+ "max brake: " + brakeFact
-    	 + '\n'+"turn radius: " + turnRadius
-    	 + '\n'+"max speed: " + maxSpeed
-    	 + '\n'+"max reverse: " + maxRevSp
-    	 + '\n' + '\n' + "current score: " + this.getScore()
-         +'\n' + "overall speed: " + overallSpeed
-         + '\n' + "overall acceleration: " + (accelFact - frict)
-         +'\n' + "lap num: "+this.lapNum
-         +'\n' + "width: "+this.width + ", height: "+this.height;
-    	
-    	//    public Car(Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp){
-
-    	/*
-    	String toString = " Position: [" + positionX + "," + positionY + "]" 
-        + '\n'+" Velocity: [" + velocityX + "," + velocityY + "]"
-        +'\n' + "overall speed: " + overallSpeed
-        + '\n' + "overall acceleration: " + (accelFact - frict)
-        + '\n' + "distance travelled: "+ totalDist
-        +'\n'+ " Angle: " + imv.getRotate()
-        +'\n' + "cos:" + Math.cos(Math.toRadians(imv.getRotate())) + " sin:" + Math.sin(Math.toRadians(imv.getRotate()))
-        + '\n' + "grass penalty: " + grassPenalty
-    	+ '\n' + "current score: " + this.getScore()
-    	+ '\n' + "distance from goal: " + this.distanceFromFinish();
-    	if(center != null){
-            toString+= '\n' + "center of mass: [" + center[0] + ","+ center[1] + "]";
-    	}*/
+    	toString = ""+this.getScore() + ", " + toString;
     	return toString;
     }
 	public boolean getPreviousWinState() {
