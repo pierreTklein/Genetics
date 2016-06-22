@@ -86,7 +86,7 @@ public class MainEvolution extends Application{
 			boolean continueProgress = true;
 			if(continueProgress){
 				try{
-				    FileInputStream fis = new FileInputStream("saveFile.tmp");
+				    FileInputStream fis = new FileInputStream("save-files/saveFile.tmp");
 					ObjectInputStream codeReader = new ObjectInputStream(fis);
 					for(int i = 0; i < population.length; i++){
 						//Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
@@ -224,7 +224,7 @@ public class MainEvolution extends Application{
 							win = true;
 							wc.clearRect(0, 0,maxDistX, maxDistY);
 							
-							Image winScreen = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/winScreen.png");
+							Image winScreen = new Image("file:Images/winScreen.png");
 							wc.drawImage(winScreen, 0, 0);
 							Font font = Font.font(20);
 							wc.setFont(font);
@@ -270,7 +270,7 @@ public class MainEvolution extends Application{
 									population[j].setRandomCode();
 								}
 								try{
-									FileWriter highScore = new FileWriter("highScores.txt",false);
+									FileWriter highScore = new FileWriter("save-files/highScores.txt",false);
 									highScore.write("");
 									highScore.close();
 								}catch(IOException e){
@@ -294,20 +294,20 @@ public class MainEvolution extends Application{
 									FileWriter fWrite;
 									
 									//checking if saveFile already exists
-									if(new File("saveFile.tmp").isFile()){
-									    fos = new FileOutputStream("saveFile.tmp");
+									if(new File("save-files/saveFile.tmp").isFile()){
+									    fos = new FileOutputStream("save-files/saveFile.tmp");
 									    oos = new ObjectOutputStream(fos);
 									}
 									else{
-									    fos = new FileOutputStream(new File("saveFile.tmp"));
+									    fos = new FileOutputStream(new File("save-files/saveFile.tmp"));
 									    oos = new ObjectOutputStream(fos);
 									}	
 									
-									if(new File("geneCode.txt").isFile()){
-										fWrite = new FileWriter("geneCode.txt");
+									if(new File("save-files/geneCode.txt").isFile()){
+										fWrite = new FileWriter("save-files/geneCode.txt");
 									}
 									else{
-										fWrite = new FileWriter(new File("geneCode.txt"));
+										fWrite = new FileWriter(new File("save-files/geneCode.txt"));
 
 									}
 									for(int j = 0; j < population.length; j++){
