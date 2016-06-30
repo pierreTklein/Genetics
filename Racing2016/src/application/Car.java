@@ -6,6 +6,8 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.paint.Color;
 import javafx.scene.Group;
 import javafx.scene.canvas.GraphicsContext;
+import geometry.Point;
+import geometry.Polygon;
 import javafx.geometry.Bounds;
 
 
@@ -30,7 +32,9 @@ public class Car implements Comparable<Car>{
     private double overallSpeed = 0;
     
     private int maxScore = 100000;
-    private int score = 0; 
+    private int score = 0;
+    private int highScore = 0;
+    private double timeAtHighScore = 0;
     
     private double timeElapsed = 0;
     private double totalDist = 0;
@@ -42,6 +46,10 @@ public class Car implements Comparable<Car>{
     private Point pLL = new Point(0,0);
     private Point pLR = new Point(0,0);
     private Point[] minBounds= {this.pUL,this.pUR,this.pLL,this.pLR};
+    
+    private Point[] hb = {this.pUL,this.pUR,this.pLL,this.pLR};
+    private Polygon hitBox = new Polygon(hb);
+    private boolean intersecting = false;
         
     private boolean previousWinState;
     private int lapNum;
@@ -64,6 +72,7 @@ public class Car implements Comparable<Car>{
         velocityX = 0;
         velocityY = 0;
         
+        
     }
     public Car(Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp){
     	this.curMap = curMap;
@@ -77,33 +86,49 @@ public class Car implements Comparable<Car>{
         positionY = 0;    
         velocityX = 0;
         velocityY = 0;
+        this.highScore = 0;
     }
     
     //METHODS BELOW HAVE TO DO WITH GENETIC CODE AND EVOLUTION:
+    public void setSpecificCode(){
+//    	[{2, 1.5}{1, 2.5}{3, 0.4}{1, 2.2}{1, 2.8}{1, 1.3}{4, 0.9}{4, 2.9}{4, 0.6}{2, 1.4}]
+    	Codon a = new Codon(2,1.5);
+    	Codon b = new Codon(1,2.5);
+    	Codon c = new Codon(3,0.4);
+    	Codon d = new Codon(1,2.2);
+    	Codon e = new Codon(1,2.8);
+    	Codon f = new Codon(1,1.3);
+    	Codon g = new Codon(4,0.9);
+    	Codon h = new Codon(4,0.6);
+    	Codon i = new Codon(2,1.4);
+    	Codon[] spec = {a,b,c,d,e,f,g,h,i};
+    	this.geneCode = spec;
+    }
     
     public void setRandomCode(){
     	this.geneCode = new Codon[10];
     	for(int i = 0; i < 10; i++){
     		//1 means forward, 2, means backward, 3 means left, 4 means right.
-    		int randomInstruction = ((int) (Math.random() * 4))+1;
-    		double randomTime = (double) ((Math.round(Math.random() * 30.0)/10.0));
-    		this.geneCode[i] = new Codon(randomInstruction,randomTime);
+    		addSingleMutation(i);
     	}
     }
     public void addMutation(){
-    	for(int i = 0; i < 10; i++){
-    		//1 means forward, 2, means backward, 3 means left, 4 means right.
+    	for(int i = 0; i < this.geneCode.length; i++){
     		double mutationFactor = Math.random();
     		if(mutationFactor > (1-mutationChance)){
-        		int randomInstruction = ((int) (Math.random() * 4))+1;
-        		double randomTime = (double) ((Math.round(Math.random() * 30.0)/10.0));
-        		this.geneCode[i] = new Codon(randomInstruction,randomTime);
+    			this.addSingleMutation(i);
     		}
     	}
-
     }
-    public Codon[] breed(Car other){
-    	Codon[] offspring = new Codon[this.geneCode.length];
+    public void addSingleMutation(int i){
+		//1 means forward, 2, means backward, 3 means left, 4 means right.
+    	int randomInstruction = ((int) (Math.random() * 4))+1;
+		double randomTime = (double) ((Math.round(Math.random() * 30.0)/10.0));
+		this.geneCode[i] = new Codon(randomInstruction,randomTime);
+		
+    }
+    public Codon[] breed(Car other, Car child){
+    	Codon[] offspring = child.getCode();
     	for(int i = 0; i < this.geneCode.length; i++){
     		double random = Math.random();
     		if(random < ((1-mutationChance)/2)){
@@ -121,6 +146,30 @@ public class Car implements Comparable<Car>{
     	return offspring;
     }
 
+    public void refineCodon(){
+    	double time = 0;
+    	double tempTime = 0;
+    	int i = 0;
+    	while(time < this.timeAtHighScore && i < this.geneCode.length){
+    		tempTime = this.geneCode[i].getTime();
+    		if(time+tempTime >= this.timeAtHighScore){
+    			this.geneCode[i].setTime(Math.round((this.timeAtHighScore-time)*10.0)/10.0);
+    		}
+			time+=tempTime;
+			i++;
+    	}
+    	while(i < this.geneCode.length){
+    		this.addSingleMutation(i);
+    		i++;
+    	}
+    }
+    public int getHighScore(){
+    	return this.highScore;
+    }
+    
+    public double getTimeAtHS(){
+    	return this.timeAtHighScore;
+    }
     
     public void setGeneCode(Codon[] geneCode){
     	this.geneCode = geneCode;
@@ -137,6 +186,7 @@ public class Car implements Comparable<Car>{
     	s+= "]";
     	return s;
     }
+   
     
     public int getNextInstruction(){
     	double counter = 0;
@@ -176,12 +226,13 @@ public class Car implements Comparable<Car>{
 		
 		this.timeElapsed = 0;
 		this.totalDist = 0;
-		this.score = 0;
+		this.setScore();
 		this.lapNum = 0;
 		this.currentCodeIndex = 0;
 		this.grassPenalty = false;
-		this.timeOnGrass = 0.5;
-
+		this.timeOnGrass = 0;
+		this.highScore = 0;
+		this.timeAtHighScore = 0;
     }
 
     public void setImage(String filename)
@@ -205,8 +256,8 @@ public class Car implements Comparable<Car>{
     	if(overallSpeed > maxSpeed){
     		overallSpeed = maxSpeed;
     	}
-    	
     }
+
     public void brake()
     
     {
@@ -234,6 +285,7 @@ public class Car implements Comparable<Car>{
     	}
     	setOrientation(angle);
     }
+
     public void turnRight()
     {
     	double angle = imv.getRotate();
@@ -252,9 +304,11 @@ public class Car implements Comparable<Car>{
     public void setOrientation(double angle){
     	this.imv.setRotate(angle);
     }
+
     public void setOverallSpeed(double speed){
     	this.overallSpeed = speed;
     }
+
     public void update(double time)
     {
         Double rotation = imv.getRotate();
@@ -279,9 +333,19 @@ public class Car implements Comparable<Car>{
 
         this.setRect();
         this.stayInMap(curMap.getDimensions()[0],curMap.getDimensions()[1]);
-        this.setScore();
-        
+        this.setScore();              
+        if(this.score > this.highScore && this.overallSpeed != 0){
+        	this.highScore = this.score;
+        	this.timeAtHighScore = Math.round(this.timeElapsed*10.0)/10.0;
+        }
+        this.hb[0] = this.pUL;
+        this.hb[1] = this.pUR;
+        this.hb[2] = this.pLL;
+        this.hb[3] = this.pLR;
+
+        this.setHitBox(this.hb);
     }
+
     public void setRect(){
         //this part updates the minimum bounds:
         Double rotation = imv.getRotate();
@@ -338,25 +402,21 @@ public class Car implements Comparable<Car>{
     	return this.velocityX;
     }
     
-    public void render(GraphicsContext gc)
-    {
-    	
-        gc.drawImage( imv.getImage(), positionX, positionY );
-    }
-
     public Bounds getBoundary()
     {
     	return imv.getBoundsInParent();
     }
-    
-
-    public boolean intersects(Car s)
+    public void setHitBox(Point[] vertexes){
+    	this.hitBox.updatePoints(vertexes);
+    }
+    public Polygon getHitBox(){
+    	return this.hitBox;
+    }
+    public boolean intersects(Car other)
     {
     	//TODO: COMPLETE THE INTERSECTION CODE, (or don't)
-    	
-    	
-    	
-        return s.getBoundary().intersects( this.getBoundary() );
+    	intersecting = this.hitBox.intersects(other.getHitBox());
+    	return intersecting;    	
     }
     
     @Override
@@ -372,7 +432,6 @@ public class Car implements Comparable<Car>{
     	}
 
     }
-    
     
     public void stayInMap(int xMax, int yMax){
     	
@@ -421,42 +480,14 @@ public class Car implements Comparable<Car>{
     		imv.setRotate((360-imv.getRotate())%360);
 
     	}
-/*
-    	Bounds box = this.getBoundary();
-    	if(box.getMaxX() > (xMax-5) && velocityX > 0){
-    		if(imv.getRotate() > 0){
-        		imv.setRotate(360-(imv.getRotate()-180));
-    		}
-    		else{
-    			imv.setRotate(180+imv.getRotate());
-    		}
-    	}
-    	else if(box.getMaxY() > (yMax-5) && velocityY > 0){
-        	imv.setRotate(360-imv.getRotate());
-
-    	}
-    	if(box.getMinX() < 5 && velocityX < 0){
-    		if(imv.getRotate() < 180){
-        		imv.setRotate(180-imv.getRotate());
-    		}
-    		else{
-    			imv.setRotate(360-(imv.getRotate()-180));
-    		}
-    		
-    	}
-    	else if(box.getMinY() < 5 && velocityY < 0){
-
-    		imv.setRotate((360-imv.getRotate())%360);
-
-    	}*/
     }
+
     public String getVelocity(){
     	return Double.toString(velocityX) + " " + Double.toString(velocityY);
     }
-	public boolean grassPenalty(){
+
+    public boolean grassPenalty(){
 		PixelReader pr = curMap.getMap().getPixelReader();
-		Bounds b = this.getBoundary();
-		
     	Point[] minBound = this.getRect();
 
 		
@@ -484,9 +515,7 @@ public class Car implements Comparable<Car>{
 		}
 		
 	}
-
-    
-    
+  
     public void setGrassPenalty(double time){
     	if(this.grassPenalty()){
     		frict = curMap.getGrassFrict();
@@ -499,6 +528,7 @@ public class Car implements Comparable<Car>{
     		
     	}
     }
+ 
     public int[] getCenter(){
     	int[] coordinates = new int[2];
     	Bounds b = imv.getBoundsInParent();
@@ -507,11 +537,12 @@ public class Car implements Comparable<Car>{
     	return coordinates;
     	
     }
+
     public void setScore(){
-    	
     	try{
     		if(!(this.currentCodeIndex==this.geneCode.length-1 && this.overallSpeed == 0)){
-            	this.score = (int) ((this.maxScore / (this.distanceFromFinish()))-this.timeOnGrass);// - timeElapsed*10);
+    			double dist = this.distanceFromFinish();
+            	this.score = (int) ((this.maxScore / (dist))-this.timeOnGrass);// - timeElapsed*10);
             	if(this.score > this.maxScore){
             		this.score =  100000;
             	}
@@ -520,15 +551,17 @@ public class Car implements Comparable<Car>{
             	}
     		}
     	}catch(Exception e){
-    		this.score = (int)(100000);// - timeElapsed*10);
+    		this.score = (int)(100000);
         	if(this.score < 0){
         		this.score = 0;
         	}
     	}
     }
+
     public int getScore(){
     	return this.score;
     }
+
     public double getOverallSpeed(){
     	return this.overallSpeed;
     }
@@ -544,7 +577,7 @@ public class Car implements Comparable<Car>{
         	}
         	toString +="]";	
     	}
-    	toString = ""+this.getScore() + ", " + toString;
+    	toString = ""+this.getScore() + ", " + toString + "," + intersecting;
     	return toString;
     }
 	public boolean getPreviousWinState() {

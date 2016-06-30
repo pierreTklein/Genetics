@@ -1,10 +1,12 @@
 package application;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
+import javafx.scene.paint.Color;
 import javafx.scene.Group;
 import javafx.scene.canvas.GraphicsContext;
+import geometry.Point;
 import javafx.geometry.Bounds;
-import javafx.geometry.Point2D;
 
 public class CarVector {
 
@@ -29,11 +31,11 @@ public class CarVector {
 	private double width;
 	private double height;
 	
-	private Point2D pUL;
-	private Point2D pUR;
-	private Point2D pLL;
-	private Point2D pLR;
-	
+    private Point pUL = new Point(0,0);
+    private Point pUR = new Point(0,0);
+    private Point pLL = new Point(0,0);
+    private Point pLR = new Point(0,0);
+    private Point[] minBounds= {this.pUL,this.pUR,this.pLL,this.pLR};
 	
 	private Vector velocity = new Vector(0,0);
 	private Vector acceleration = new Vector(0,0);
@@ -81,7 +83,6 @@ public class CarVector {
     }
     
     public void reset(int playerNum){
-    	velocity.setVals(0, 0);
     	acceleration.setVals(0, 0);
     	friction.setVals(0, 0);
     	brake.setVals(0, 0);
@@ -160,9 +161,9 @@ public class CarVector {
     	}
     	
     	//acceleration = (velocity)^2/radius of circle
-//	    	this.turnAcc = Math.pow(velocity.getMagnitude(),2) / radius2;
+	    double turnAcc = Math.pow(velocity.getMagnitude(),2) / radius2;
     	//(x,y) => (-y,x)
-    	Vector leftTurn = new Vector(sin * radius2,-cos * radius2);
+    	Vector leftTurn = new Vector(sin * turnAcc,-cos * turnAcc);
     	velocity.add(leftTurn);
     	boolean turned = setOrientationVect(velocity);
     	if(!turned){
@@ -182,9 +183,9 @@ public class CarVector {
     		sin = 0;
     	}
     
- //   	this.turnAcc = Math.pow(velocity.getMagnitude(),2) / radius2;
+    	double turnAcc = Math.pow(velocity.getMagnitude(),2) / radius2;
     	//(x,y) => (y,-x)
-    	Vector rightTurn = new Vector( -sin * radius2, cos * radius2);
+    	Vector rightTurn = new Vector( -sin * turnAcc, cos * turnAcc);
     	velocity.add(rightTurn);
     	boolean turned = setOrientationVect(velocity);
     	if(!turned){
@@ -273,29 +274,28 @@ public class CarVector {
 		double ulx = (b.getMinX()-center[0]) * Math.cos(Math.toRadians(angle)) - (b.getMinY()-center[1]) * Math.sin(Math.toRadians(angle))+center[0];
         double uly = (b.getMinY()-center[1]) * Math.cos(Math.toRadians(angle)) + (b.getMinX()-center[0]) * Math.sin(Math.toRadians(angle))+center[1];
 
-        this.pUL = new Point2D(ulx,uly);
+        this.pUL.update(ulx,uly);
         
         double urx = (b.getMaxX()-center[0]) * Math.cos(Math.toRadians(angle)) - (b.getMinY()-center[1]) * Math.sin(Math.toRadians(angle))+center[0];
         double ury = (b.getMinY()-center[1]) * Math.cos(Math.toRadians(angle)) + (b.getMaxX()-center[0]) * Math.sin(Math.toRadians(angle))+center[1];
 
-		this.pUR = new Point2D(urx,ury);
+		this.pUR.update(urx,ury);
 
         double llx = (b.getMinX()-center[0]) * Math.cos(Math.toRadians(angle)) - (b.getMaxY()-center[1]) * Math.sin(Math.toRadians(angle))+center[0];
         double lly = (b.getMaxY()-center[1]) * Math.cos(Math.toRadians(angle)) + (b.getMinX()-center[0]) * Math.sin(Math.toRadians(angle))+center[1];
 
-		this.pLL = new Point2D(llx,lly);
+		this.pLL.update(llx,lly);
 
         double lrx =(b.getMaxX()-center[0]) * Math.cos(Math.toRadians(angle)) - (b.getMaxY()-center[1]) * Math.sin(Math.toRadians(angle))+center[0];
         double lry = (b.getMaxY()-center[1]) * Math.cos(Math.toRadians(angle)) + (b.getMaxX()-center[0]) * Math.sin(Math.toRadians(angle))+center[1];
 	
-		this.pLR = new Point2D(lrx,lry);
+		this.pLR.update(lrx,lry);
 
 
     }
     
-    public Point2D[] getRect(){
-    	Point2D[] points = {pUL,pUR,pLL,pLR};
-    	return points;
+    public Point[] getRect(){
+    	return minBounds;
     }
     
     public int distanceFromFinish(){
@@ -315,7 +315,7 @@ public class CarVector {
     	imv.setY(positionY);
     	imv.setX(positionX);
     	group.getChildren().add(imv);
-    }
+    } 
     
     public double getVelocityX(){
     	return this.velocity.getX();
@@ -323,8 +323,7 @@ public class CarVector {
     
     public void render(GraphicsContext gc)
     {
-    	
-        gc.drawImage( imv.getImage(), positionX, positionY );
+        gc.drawImage( imv.getImage(),  positionX, positionY );
     }
 
     public Bounds getBoundary()
@@ -344,19 +343,49 @@ public class CarVector {
     
     public void stayInMap(int xMax, int yMax){
     	
-    	Bounds box = this.getBoundary();
-    	if(box.getMaxX() > (xMax-5) && velocity.getX() > 0){
-    		velocity.setVals(-velocity.getX(), velocity.getY());
+    	Point[] minBound = this.getRect();
+    	double maxX = 0;
+    	double maxY = 0;
+    	double minX = minBound[0].getX();
+    	double minY = minBound[0].getY();
+    	for(int i = 0; i < minBound.length; i++){
+    		if(minBound[i].getX() > maxX){
+    			maxX = minBound[i].getX();
+    		}
+    		if(minBound[i].getY() > maxY){
+    			maxY = minBound[i].getY();
+    		}
+    		if(minBound[i].getX() < minX){
+    			minX = minBound[i].getX();
+    		}
+    		if(minBound[i].getY() < minY){
+    			minY = minBound[i].getY();
+    		}
     	}
-    	else if(box.getMaxY() > (yMax-5) && velocity.getY() > 0){
-    		velocity.setVals(velocity.getX(), -velocity.getY());
+    	if(maxX> (xMax-5) && velocity.getX() > 0){
+    		if(imv.getRotate() > 0){
+        		imv.setRotate(360-(imv.getRotate()-180));
+    		}
+    		else{
+    			imv.setRotate(180+imv.getRotate());
+    		}
+    	}
+    	else if(maxY > (yMax-5) && velocity.getY() > 0){
+        	imv.setRotate(360-imv.getRotate());
 
     	}
-    	if(box.getMinX() < 5 && velocity.getX() < 0){
-    		velocity.setVals(-velocity.getX(), velocity.getY());    		
+    	if(minX < 5 && velocity.getX() < 0){
+    		if(imv.getRotate() < 180){
+        		imv.setRotate(180-imv.getRotate());
+    		}
+    		else{
+    			imv.setRotate(360-(imv.getRotate()-180));
+    		}
+    		
     	}
-    	else if(box.getMinY() < 5 && velocity.getY() < 0){
-    		velocity.setVals(velocity.getX(), -velocity.getY());
+    	else if(minY < 5 && velocity.getY() < 0){
+
+    		imv.setRotate((360-imv.getRotate())%360);
 
     	}
     }
@@ -364,15 +393,46 @@ public class CarVector {
     	return Double.toString(velocity.getX()) + " " + Double.toString(velocity.getY());
     }
     
-    public void setGrassPenalty(boolean penalty){
-    	if(penalty){
+    public boolean grassPenalty(){
+		PixelReader pr = curMap.getMap().getPixelReader();
+    	Point[] minBound = this.getRect();
+
+		
+		Color[] corners = new Color[4];
+		try{
+			corners[0] = pr.getColor((int) minBound[0].getX(), (int) minBound[0].getY());
+			corners[1] = pr.getColor((int) minBound[1].getX(), (int) minBound[1].getY());
+			corners[2] = pr.getColor((int) minBound[2].getX(), (int) minBound[2].getY());
+			corners[3] = pr.getColor((int) minBound[3].getX(), (int) minBound[3].getY());
+			int counter = 0;
+			for(int i = 0; i < corners.length; i++){
+				if(corners[i].toString().equals(curMap.getGrassColor())){
+					counter++;
+				}
+			}
+			if(counter >= 3){
+				return true;
+			}
+			else{
+				return false;
+			}
+		}
+		catch(Exception e){
+			return true;
+		}
+		
+	}
+
+    public void setGrassPenalty(double time){
+    	if(this.grassPenalty()){
     		frict = curMap.getGrassFrict();
+    		this.grassPenalty = true;
     	}
     	else{
     		frict = curMap.getAsphaltFrict();
+    		this.grassPenalty = false;
     		
     	}
-    	this.grassPenalty = penalty;
     }
     public int[] getCenter(){
     	int[] coordinates = new int[2];
@@ -441,7 +501,8 @@ public class CarVector {
     					"friction vector: "+friction.toString() + '\n'+
     					"brake vector:" + brake.toString() + '\n'+
     					"Velocity angle: "+a +'\n'+ 
-    					 " Angle: " + imv.getRotate();
+    					 " Angle: " + imv.getRotate() + '\n' +
+    					 "x:" + this.positionX + "y: "+ this.positionY;
     	
     	
     	

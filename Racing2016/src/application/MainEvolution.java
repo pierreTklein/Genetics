@@ -342,7 +342,7 @@ public class MainEvolution extends Application{
 							car.update(elapsedTime);
 							car.render(cars);
 							int[] carCenter = car.getCenter();
-							gc.fillText("–––––––" + i + "," + car.getScore(), carCenter[0], carCenter[1]);
+							gc.fillText("–––––––" + i + ", " + car.getScore()+ ", "+ car.getHighScore() + "," +car.getTimeAtHS(), carCenter[0], carCenter[1]);
 							
 							/**this is for debugging:**/
 							
@@ -368,19 +368,22 @@ public class MainEvolution extends Application{
 						String s = Integer.toString(population[0].getScore());
 						for(int i = 0; i < population.length/2; i++){
 							/**breed new cars based on genetic code of best cars **/
-							population[population.length-i-1].setGeneCode(population[i].breed(population[i+1]));
+							population[population.length-i-1].setGeneCode(population[i].breed(population[i+1], population[population.length-i-1]));
 							population[i].addMutation();
 						}
 						for(int j = 0; j < population.length; j++){
 							population[j].reset(j);
 						}
+
+						System.out.println("reset completed.");
+						
 						/**saves current progress:**/
 						try {
-						    FileOutputStream fos = new FileOutputStream("saveFile.tmp");
+						    FileOutputStream fos = new FileOutputStream("save-files/saveFile.tmp");
 						    ObjectOutputStream oos = new ObjectOutputStream(fos);
 						   
-							FileWriter currentGenes = new FileWriter("geneCode.txt");
-							FileWriter highScore = new FileWriter("highScores.txt",true);
+							FileWriter currentGenes = new FileWriter("save-files/geneCode.txt");
+							FileWriter highScore = new FileWriter("save-files/highScores.txt",true);
 							highScore.write(s + '\t');
 							for(int j = 0; j < population.length; j++){
 								currentGenes.write(population[j].getCodeString() + '\n');

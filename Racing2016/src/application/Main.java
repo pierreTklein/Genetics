@@ -24,7 +24,7 @@ public class Main extends Application {
 	public void start(Stage stage){
 		try{
 			Group root = new Group();
-			Group cars = new Group();
+			Group Cars = new Group();
 			Scene scene = new Scene(root);
 			
 			stage.setScene(scene);
@@ -34,7 +34,7 @@ public class Main extends Application {
 			Map map = new Map();
 			if(trackNum == 1){
 				//this is a parking map (track type 1)
-				Image background = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/tracks/race_track_2.png");
+				Image background = new Image("file:Images/tracks/race_track_2.png");
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {1100, 160};
 				int[][] endBox = {{165,737},{209,815}};
@@ -42,7 +42,7 @@ public class Main extends Application {
 			}
 			if(trackNum == 2){
 				//this is a racing map (track type 2)
-				Image background = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/tracks/race_track_3.png");
+				Image background = new Image("file:Images/tracks/race_track_3.png");
 				int[] dimensions = {(int)background.getWidth(),(int)background.getHeight()};
 				int[] startCoord = {440, 125};
 				int[][] endBox = {{415,95},{415,232}};
@@ -59,23 +59,22 @@ public class Main extends Application {
 			//CREATES THE VEHICLES:
 			Car[] population = new Car[2];
 			//
-			Image blueCarImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/blueCar.png");
+			Image blueCarImg = new Image("file:Images/Cars/blueCar.png");
 			//Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
 			Car defaultCar = new Car(map,2,2,1,200,-100);
 			defaultCar.setImage(blueCarImg);
 			
-			Image redCarImg = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/redCar.png");
+			Image redCarImg = new Image("file:Images/Cars/redCar.png");
 			Car redCar = new Car(map,2,2,1,200,-100);
 			redCar.setImage(redCarImg);
 			
 			
-
 			
 			population[0] = defaultCar;
 			population[1] = redCar;
 			
 			root.getChildren().add(gameCanvas);
-			root.getChildren().add(cars);
+			root.getChildren().add(Cars);
 			root.getChildren().add(winCanvas);
 			
 			GraphicsContext gc = gameCanvas.getGraphicsContext2D();
@@ -115,6 +114,7 @@ public class Main extends Application {
 			}
 			final Map map2 = map;
 			final Time lastNanoTime = new Time(System.nanoTime());
+			
 			new AnimationTimer(){
 				@Override
 				public void handle(long now) {
@@ -129,18 +129,19 @@ public class Main extends Application {
 					gc.clearRect(0, 0, maxDistX, maxDistY);
 					
 					for(int i = 0; i < population.length; i++){
-						Car car = population[i];
-						if(map2.checkWin(car)){
+						Car Car = population[i];
+						if(map2.checkWin(Car)){
 							win = true;
 							wc.clearRect(0, 0,maxDistX, maxDistY);
-							int score = car.getScore();
+							int score = Car.getScore();
 							
-							Image winScreen = new Image("file:///Users/appleuser/Desktop/JavaFX tutorials/Racing2016/winScreen.png");
+							Image winScreen = new Image("file:Images/winScreen.png");
 							wc.drawImage(winScreen, 0, 0);
 							Font font = Font.font(30);
 							wc.setFont(font);
 							wc.fillText("Press R to restart.", 500, 30);
-							wc.fillText("SCORE: " + score + ". Player "+(i+1)+" won.", 700, 500);
+							wc.fillText("Player "+(i+1)+" won.", 500, 500);
+							wc.fillText("SCORE: " + score, 800, 500);
 							if(cmds.contains("R")){
 								for(int j = 0; j < population.length; j++){
 									population[j].reset(j);
@@ -153,16 +154,16 @@ public class Main extends Application {
 							gc.drawImage(map2.getMap(), 0, 0);
 
 							if(cmds.contains("UP")){
-								car.accelerate();
+								Car.accelerate();
 							}
 							if(cmds.contains("DOWN")){
-								car.brake();
+								Car.brake();
 							}
 							if(cmds.contains("LEFT")){
-								car.turnLeft();
+								Car.turnLeft();
 							}
 							if(cmds.contains("RIGHT")){
-								car.turnRight();
+								Car.turnRight();
 							}
 							if(cmds.contains("R")){
 								for(int j = 0; j < population.length; j++){
@@ -175,16 +176,16 @@ public class Main extends Application {
 							gc.drawImage(map2.getMap(), 0, 0);
 
 							if(cmds.contains("W")){
-								car.accelerate();
+								Car.accelerate();
 							}
 							if(cmds.contains("S")){
-								car.brake();
+								Car.brake();
 							}
 							if(cmds.contains("A")){
-								car.turnLeft();
+								Car.turnLeft();
 							}
 							if(cmds.contains("D")){
-								car.turnRight();
+								Car.turnRight();
 							}
 							if(cmds.contains("R")){
 								for(int j = 0; j < population.length; j++){
@@ -200,21 +201,17 @@ public class Main extends Application {
 						wc.clearRect(0, 0, maxDistX, maxDistY);
 						
 						for(int i = 0; i < population.length; i++){
-							Car car = population[i];
-							car.update(elapsedTime);
-							car.setGrassPenalty(elapsedTime);
-							car.render(cars);
-							Point[] p = car.getRect();
-							
-
-							gc.fillRect(p[0].getX()-3, p[0].getY()-3, 5, 5);
-							gc.fillRect(p[1].getX()-3, p[1].getY()-3, 5, 5);
-							gc.fillRect(p[2].getX()-3, p[2].getY()-3, 5, 5);
-							gc.fillRect(p[3].getX()-3, p[3].getY()-3, 5, 5);
-							
+							Car Car = population[i];
+							Car.update(elapsedTime);
+							Car.setGrassPenalty(elapsedTime);
+							Car.render(Cars);
+						}
+						for(int i = 0; i < population.length; i++){
+							for(int j = i+1; j < population.length; j++){
+								population[i].intersects(population[j]);
+							}
 						}
 						
-				//		gc.fillText(raceCar.toString(),400,30);
 						
 						Font font = Font.font(12);
 						gc.setFont(font);
@@ -240,7 +237,7 @@ public class Main extends Application {
 	public static void main(String[] args){
 		launch(args);
 	}
-	
+	//a little fun stuff:
 	public static void keka(){
 		int bunny = 500000;
 		bunny = bunny * 2;
@@ -260,12 +257,12 @@ for(int i = 0; i < population.length; i++){
 	double maxSpeed = Math.abs(randomNum.nextGaussian()*10 + 100);
 	double maxRevSp = -1 * maxSpeed / 2;
 	
-	Car car = new Car(race_track_2, accelFact, brakeFact, turnRadius, maxSpeed, maxRevSp);
-	car.setImage(blueCarImg);
-	population[i] = car;
+	Car Car = new Car(race_track_2, accelFact, brakeFact, turnRadius, maxSpeed, maxRevSp);
+	Car.setImage(blueCarImg);
+	population[i] = Car;
 }
 */
-//creates a car:
+//creates a Car:
 //Map curMap, double accelFact, double brakeFact, double turnRadius, double maxSpeed, double maxRevSp
 
 
