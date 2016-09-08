@@ -1,9 +1,9 @@
-//**RACING_2016 Version 0.16 README.txt**//
+#RACING_2016 Version 0.16
 
 - This is a project started by Pierre Theo Klein to test the applications of genetic algorithms for pathfinding. 
 
 
-GENETICS:
+#GENETICS:
 
 - The cars have DNA that has of 10 codons, which in turn stores a possible move (1 = forward, 2 = backward, 3 = left, and 4 = right) as well as the desired time to make the move. 
 
@@ -15,11 +15,11 @@ GENETICS:
 
 - The probability for mutation is relatively high, at 10% 
 
-ENVIRONMENT:
+#ENVIRONMENT:
 
 - Grass is sticky like glue (so much so, that cars can no longer move). Asphalt has a lower friction than grass (cars can move on asphalt). 
 
-CAR:
+#CAR:
 
 - Cars have default stats given to them. Here are the stats:
 	- max speed: 200 px / second
@@ -27,5 +27,5 @@ CAR:
 	- max acceleration: 2 px / second^2
 	- max brake: -2 px / second^2
  
-NOTES:
+#NOTES:
 -You must run “MainEvolution.java” once you compile all other .java files.
